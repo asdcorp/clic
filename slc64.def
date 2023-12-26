@@ -1,0 +1,5 @@
+LIBRARY "SLC.dll"
+EXPORTS
+SLGetWindowsInformation
+SLGetWindowsInformationDWORD
+SLIsWindowsGenuineLocal

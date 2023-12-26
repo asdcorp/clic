@@ -1,0 +1,3 @@
+LIBRARY "CLIPC.dll"
+EXPORTS
+ClipGetSubscriptionStatus
