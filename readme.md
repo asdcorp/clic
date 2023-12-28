@@ -31,7 +31,7 @@ Values documentation
 | SubscriptionEnabled | Is the subscription enabled |
 | SubscriptionSku | Edition ID of the subscription edition |
 | SubscriptionState | State of the subscription (`1` = Active, `2` = Not active) |
-| IsWindowsGenuine | Is the copy of Windows correctly licensed (`FALSE` means an `Activate Windows` watermark and a personalization block) |
+| IsWindowsGenuine | Is the copy of Windows correctly licensed |
 
 License
 -------
