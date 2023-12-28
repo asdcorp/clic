@@ -11,9 +11,9 @@ typedef enum _tagSLDATATYPE {
 } SLDATATYPE;
 
 typedef struct _tagSUBSCRIPTIONSTATUS {
-    int dwEnabled;
-    int dwSku;
-    int dwState;
+    DWORD dwEnabled;
+    DWORD dwSku;
+    DWORD dwState;
 } SUBSCRIPTIONSTATUS;
 
 HRESULT WINAPI ClipGetSubscriptionStatus(
@@ -89,9 +89,6 @@ BOOL PrintSubscriptionStatus() {
 
     wprintf(L"SubscriptionSupportedEdition=%ws\n", dwSupported ? L"TRUE" : L"FALSE");
 
-    if(dwSupported == 0)
-        return TRUE;
-
     if(ClipGetSubscriptionStatus(&pStatus))
         return FALSE;
 
@@ -108,11 +105,23 @@ BOOL PrintSubscriptionStatus() {
 
 BOOL PrintIsWindowsGenuine() {
     DWORD dwGenuine = 0;
+    PCWSTR ppwszGenuineStates[] = {
+        L"SL_GEN_STATE_IS_GENUINE",
+        L"SL_GEN_STATE_INVALID_LICENSE",
+        L"SL_GEN_STATE_TAMPERED",
+        L"SL_GEN_STATE_OFFLINE",
+        L"SL_GEN_STATE_LAST"
+    };
 
     if(SLIsWindowsGenuineLocal(&dwGenuine))
         return FALSE;
 
-    wprintf(L"IsWindowsGenuine=%ws\n", !dwGenuine ? L"TRUE" : L"FALSE");
+    if(dwGenuine < 5) {
+        wprintf(L"IsWindowsGenuine=%ws\n", ppwszGenuineStates[dwGenuine]);
+    } else {
+        wprintf(L"IsWindowsGenuine=%d\n", dwGenuine);
+    }
+
     return TRUE;
 }
 
