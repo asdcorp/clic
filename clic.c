@@ -1,40 +1,35 @@
 #include <windows.h>
+#include <objbase.h>
+#include <ocidl.h>
 #include <stdio.h>
+#include "clic.h"
 
-typedef enum _tagSLDATATYPE {
-    SL_DATA_NONE = REG_NONE,
-    SL_DATA_SZ = REG_SZ,
-    SL_DATA_DWORD = REG_DWORD,
-    SL_DATA_BINARY = REG_BINARY,
-    SL_DATA_MULTI_SZ,
-    SL_DATA_SUM = 100
-} SLDATATYPE;
+BOOL InitializeDigitalLicenseCheck(IEditionUpgradeManager **m_IEditionUpgradeManager) {
+    GUID guidEditionUpgradeManager = {
+        0x17CCA47D, 0xDAE5, 0x4E4A,
+        {0xAC, 0x42, 0xCC, 0x54, 0xE2, 0x8F, 0x33, 0x4A}
+    };
 
-typedef struct _tagSUBSCRIPTIONSTATUS {
-    DWORD dwEnabled;
-    DWORD dwSku;
-    DWORD dwState;
-} SUBSCRIPTIONSTATUS;
+    GUID guidIEditionUpgradeManager = {
+        0xF2DCB80D, 0x0670, 0x44BC,
+        {0x90, 0x02, 0xCD, 0x18, 0x68, 0x87, 0x30, 0xAF}
+    };
 
-HRESULT WINAPI ClipGetSubscriptionStatus(
-    SUBSCRIPTIONSTATUS **ppStatus
-);
+    if(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED))
+        return FALSE;
 
-HRESULT WINAPI SLGetWindowsInformation(
-    PCWSTR     pwszValueName,
-    SLDATATYPE *peDataType,
-    UINT       *pcbValue,
-    PBYTE      *ppbValue
-);
+    if(CoCreateInstance(
+        &guidEditionUpgradeManager,
+        0,
+        CLSCTX_INPROC_SERVER,
+        &guidIEditionUpgradeManager,
+        (void**)m_IEditionUpgradeManager
+    )) {
+        return FALSE;
+    }
 
-HRESULT WINAPI SLGetWindowsInformationDWORD(
-    PCWSTR pwszValueName,
-    DWORD  *pdwValue
-);
-
-HRESULT WINAPI SLIsWindowsGenuineLocal(
-    DWORD *dwGenuine
-);
+    return TRUE;
+}
 
 BOOL PrintStateData() {
     PBYTE pBuffer = 0;
@@ -75,6 +70,28 @@ BOOL PrintLastActivationHRresult() {
 
     wprintf(L"LastActivationHResult=0x%08x\n", *((DWORD*)pBuffer));
     LocalFree(pBuffer);
+
+    return TRUE;
+}
+
+BOOL PrintDigitalLicenseStatus() {
+    IEditionUpgradeManager *m_IEditionUpgradeManager;
+    DWORD dwReturnCode = 0;
+    BOOL bDigitalLicense = FALSE;
+
+    if(!InitializeDigitalLicenseCheck(&m_IEditionUpgradeManager))
+        return FALSE;
+
+    if(m_IEditionUpgradeManager->lpVtbl->AcquireModernLicenseForWindows(
+        m_IEditionUpgradeManager,
+        1,
+        &dwReturnCode
+    )) {
+        return FALSE;
+    }
+
+    bDigitalLicense = ((dwReturnCode & 0x80000000) != 0 || dwReturnCode == 1);
+    wprintf(L"DigitalLicense=%ws\n", bDigitalLicense ? L"FALSE" : L"TRUE");
 
     return TRUE;
 }
@@ -139,11 +156,14 @@ int WINAPI wWinMain(
     if(!PrintLastActivationHRresult())
         bError = TRUE;
 
+    if(!PrintDigitalLicenseStatus())
+        bError = TRUE;
+
     if(!PrintSubscriptionStatus())
         bError = TRUE;
 
     if(!PrintIsWindowsGenuine())
         bError = TRUE;
 
-    return bError;
+    exit(bError);
 }

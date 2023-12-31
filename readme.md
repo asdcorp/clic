@@ -27,6 +27,7 @@ Values documentation
 | volumeActivationOrder | Order of the volume activation |
 | uxDifferentiator | User Experience Differentiator |
 | LastActivationHResult | Error code of a last activation attempt |
+| DigitalLicense | Is the machine activated using a digital license |
 | SubscriptionSupportedEdition | Can subscriptions be used on the current edition |
 | SubscriptionEnabled | Is the subscription enabled |
 | SubscriptionSku | Edition ID of the subscription edition |
