@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include "clic.h"
 
+#define BoolToWStr(bVal) ((bVal) ? L"TRUE" : L"FALSE")
+
 BOOL InitializeDigitalLicenseCheck(IEditionUpgradeManager **m_IEditionUpgradeManager) {
     GUID guidEditionUpgradeManager = {
         0x17CCA47D, 0xDAE5, 0x4E4A,
@@ -23,7 +25,7 @@ BOOL InitializeDigitalLicenseCheck(IEditionUpgradeManager **m_IEditionUpgradeMan
         0,
         CLSCTX_INPROC_SERVER,
         &guidIEditionUpgradeManager,
-        (void**)m_IEditionUpgradeManager
+        (PVOID*)m_IEditionUpgradeManager
     )) {
         return FALSE;
     }
@@ -32,45 +34,45 @@ BOOL InitializeDigitalLicenseCheck(IEditionUpgradeManager **m_IEditionUpgradeMan
 }
 
 BOOL PrintStateData() {
-    PBYTE pBuffer = 0;
+    PWSTR pwszStateData = 0;
     UINT cbSize = 0;
 
     if(SLGetWindowsInformation(
         L"Security-SPP-Action-StateData",
         NULL,
         &cbSize,
-        &pBuffer
+        (PBYTE*)&pwszStateData
     )) {
         return FALSE;
     }
 
-    for(int i = 0; i < cbSize; i += 2) {
-        if(pBuffer[i] == ';' && pBuffer[i+1] == 0)
-            pBuffer[i] = '\n';
+    for(INT i = 0; i < (cbSize / 2); i++) {
+        if(pwszStateData[i] == L';')
+            pwszStateData[i] = L'\n';
     }
 
-    wprintf(L"%ws\n", pBuffer);
-    LocalFree(pBuffer);
+    wprintf(L"%ws\n", pwszStateData);
 
+    LocalFree(pwszStateData);
     return TRUE;
 }
 
 BOOL PrintLastActivationHRresult() {
-    PBYTE pBuffer = 0;
+    PDWORD pdwLastHResult = 0;
     UINT cbSize = 0;
 
     if(SLGetWindowsInformation(
         L"Security-SPP-LastWindowsActivationHResult",
         NULL,
         &cbSize,
-        &pBuffer
+        (PBYTE*)&pdwLastHResult
     )) {
         return FALSE;
     }
 
-    wprintf(L"LastActivationHResult=0x%08x\n", *((DWORD*)pBuffer));
-    LocalFree(pBuffer);
+    wprintf(L"LastActivationHResult=0x%08x\n", *pdwLastHResult);
 
+    LocalFree(pdwLastHResult);
     return TRUE;
 }
 
@@ -90,8 +92,8 @@ BOOL PrintDigitalLicenseStatus() {
         return FALSE;
     }
 
-    bDigitalLicense = ((dwReturnCode & 0x80000000) != 0 || dwReturnCode == 1);
-    wprintf(L"DigitalLicense=%ws\n", bDigitalLicense ? L"FALSE" : L"TRUE");
+    bDigitalLicense = (dwReturnCode != 1 && dwReturnCode <= INT_MAX);
+    wprintf(L"DigitalLicense=%ws\n", BoolToWStr(bDigitalLicense));
 
     return TRUE;
 }
@@ -100,23 +102,25 @@ BOOL PrintSubscriptionStatus() {
     SUBSCRIPTIONSTATUS *pStatus;
     DWORD dwSupported = 0;
 
-    if(SLGetWindowsInformationDWORD(L"ConsumeAddonPolicySet", &dwSupported)) {
+    if(SLGetWindowsInformationDWORD(L"ConsumeAddonPolicySet", &dwSupported))
         return FALSE;
-    }
 
-    wprintf(L"SubscriptionSupportedEdition=%ws\n", dwSupported ? L"TRUE" : L"FALSE");
+    wprintf(L"SubscriptionSupportedEdition=%ws\n", BoolToWStr(dwSupported));
 
     if(ClipGetSubscriptionStatus(&pStatus))
         return FALSE;
 
-    wprintf(L"SubscriptionEnabled=%ws\n", pStatus->dwEnabled ? L"TRUE" : L"FALSE");
+    wprintf(L"SubscriptionEnabled=%ws\n", BoolToWStr(pStatus->dwEnabled));
 
-    if(pStatus->dwEnabled == 0)
+    if(pStatus->dwEnabled == 0) {
+        LocalFree(pStatus);
         return TRUE;
+    }
 
     wprintf(L"SubscriptionSku=%d\n", pStatus->dwSku);
     wprintf(L"SubscriptionState=%d\n", pStatus->dwState);
 
+    LocalFree(pStatus);
     return TRUE;
 }
 
